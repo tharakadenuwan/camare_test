@@ -213,43 +213,66 @@ class LeafDetector:
             out2 = self.interpreter.get_tensor(self.output_details[2]['index'])
             out3 = self.interpreter.get_tensor(self.output_details[3]['index']) if len(self.output_details) > 3 else None
 
-            # Determine which tensor corresponds to boxes and scores
+            # Handle both standard SSD [1, N, 4] and custom single-box [1, 4] & [1, 1] heads
             boxes = None
             classes = None
             scores = None
+            is_xyxy = False
 
-            for tensor in [out0, out1, out2, out3]:
-                if tensor is None:
-                    continue
+            # Check for custom 2D output heads [1, 4] and [1, 1] (as in plantcare_pi5_models.zip)
+            box_tensor = None
+            conf_tensor = None
+            for out in self.output_details:
+                tensor = self.interpreter.get_tensor(out['index'])
                 shape = tensor.shape
-                if len(shape) == 3 and shape[-1] == 4:
+                if len(shape) == 2 and shape[1] == 4:
+                    box_tensor = tensor
+                    is_xyxy = True
+                elif len(shape) == 2 and shape[1] == 1:
+                    conf_tensor = tensor
+                elif len(shape) == 3 and shape[-1] == 4:
                     boxes = tensor[0]
                 elif len(shape) == 2 and (scores is None or classes is None):
-                    # Check dtype or values to distinguish classes from scores
                     if np.issubdtype(tensor.dtype, np.floating) and np.max(tensor) <= 1.01:
                         scores = tensor[0]
                     else:
                         classes = tensor[0]
 
-            if boxes is None or scores is None:
-                # Fallback to direct positional indexing
-                boxes = out0[0]
-                classes = out1[0] if len(self.output_details) > 1 else np.zeros(len(boxes))
-                scores = out2[0] if len(self.output_details) > 2 else np.ones(len(boxes))
-
-            num = int(out3[0]) if out3 is not None else len(scores)
+            if box_tensor is not None and conf_tensor is not None:
+                boxes = box_tensor  # shape [1, 4]
+                scores = conf_tensor.flatten()  # shape [1]
+                classes = np.zeros(len(scores), dtype=int)
+                num = 1
+            else:
+                if boxes is None or scores is None:
+                    out0 = self.interpreter.get_tensor(self.output_details[0]['index'])
+                    out1 = self.interpreter.get_tensor(self.output_details[1]['index']) if len(self.output_details) > 1 else None
+                    out2 = self.interpreter.get_tensor(self.output_details[2]['index']) if len(self.output_details) > 2 else None
+                    boxes = out0[0] if len(out0.shape) == 3 else out0
+                    scores = out2[0] if out2 is not None and len(out2.shape) == 2 else np.ones(len(boxes))
+                    classes = out1[0] if out1 is not None and len(out1.shape) == 2 else np.zeros(len(boxes))
+                out3 = self.interpreter.get_tensor(self.output_details[3]['index']) if len(self.output_details) > 3 else None
+                num = int(out3[0]) if out3 is not None else len(scores)
 
             for i in range(min(num, len(scores))):
                 score = float(scores[i])
                 if score < self.conf_threshold:
                     continue
 
-                ymin, xmin, ymax, xmax = boxes[i]
-                # Scale to original dimensions
-                x1 = int(max(0, xmin * orig_w))
-                y1 = int(max(0, ymin * orig_h))
-                x2 = int(min(orig_w - 1, xmax * orig_w))
-                y2 = int(min(orig_h - 1, ymax * orig_h))
+                if is_xyxy:
+                    # Model outputs [xmin, ymin, xmax, ymax]
+                    xmin, ymin, xmax, ymax = boxes[i]
+                    x1 = int(max(0, min(1.0, xmin)) * orig_w)
+                    y1 = int(max(0, min(1.0, ymin)) * orig_h)
+                    x2 = int(max(0, min(1.0, xmax)) * orig_w)
+                    y2 = int(max(0, min(1.0, ymax)) * orig_h)
+                else:
+                    # Standard SSD outputs [ymin, xmin, ymax, xmax]
+                    ymin, xmin, ymax, xmax = boxes[i]
+                    x1 = int(max(0, xmin * orig_w))
+                    y1 = int(max(0, ymin * orig_h))
+                    x2 = int(min(orig_w - 1, xmax * orig_w))
+                    y2 = int(min(orig_h - 1, ymax * orig_h))
 
                 # Check box validity
                 if (x2 - x1) >= 15 and (y2 - y1) >= 15:

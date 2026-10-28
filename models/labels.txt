@@ -1,0 +1,4 @@
+Apple___Black_rot
+Apple___healthy
+Corn___Common_rust
+Corn___healthy

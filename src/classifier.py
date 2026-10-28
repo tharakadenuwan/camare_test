@@ -118,6 +118,19 @@ class DiseaseClassifierLite:
             self.input_dtype = input_details[0]['dtype']
             logger.info(f"Loaded TFLite Classifier: input shape {self.input_shape}, dtype {self.input_dtype}")
 
+            # Check if model output class count matches loaded labels
+            num_classes = int(output_details[0]['shape'][-1])
+            if len(self.labels) != num_classes:
+                model_dir = os.path.dirname(self.model_path)
+                for cand in [os.path.join(model_dir, "labels.txt"), "labels/labels.txt", "labels.txt"]:
+                    if os.path.exists(cand):
+                        with open(cand, "r", encoding="utf-8") as f:
+                            lines = [l.strip() for l in f if l.strip()]
+                            if len(lines) == num_classes:
+                                self.labels = lines
+                                logger.info(f"Auto-loaded matching {num_classes} labels from '{cand}'.")
+                                break
+
         elif ext == ".onnx":
             self.backend = "onnx"
             try:

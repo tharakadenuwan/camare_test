@@ -156,29 +156,23 @@ class DiseaseClassifierLite:
             raise ValueError(f"Unsupported classifier extension: {ext}")
 
     def preprocess(self, crop_bgr: np.ndarray) -> np.ndarray:
-        """Preprocesses cropped leaf patch (resize 224x224, ImageNet normalization)."""
+        """Preprocesses cropped leaf patch (resize to model input shape, normalize to [0, 1])."""
         target_h, target_w = self.input_shape
         resized = cv2.resize(crop_bgr, (target_w, target_h))
         rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
 
-        # Normalization with ImageNet mean and std (matching original backend/ai_model/train.py)
-        mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-        std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
-        normalized = (rgb - mean) / std
-
         if self.backend == "tflite":
             if self.input_dtype == np.uint8:
-                # Quantized input
                 return np.expand_dims(cv2.cvtColor(resized, cv2.COLOR_BGR2RGB), axis=0).astype(np.uint8)
-            return np.expand_dims(normalized, axis=0).astype(np.float32)
+            return np.expand_dims(rgb, axis=0).astype(np.float32)
 
         elif self.backend == "onnx":
             if getattr(self, "is_nchw", False):
-                chw = np.transpose(normalized, (2, 0, 1))
+                chw = np.transpose(rgb, (2, 0, 1))
                 return np.expand_dims(chw, axis=0).astype(np.float32)
-            return np.expand_dims(normalized, axis=0).astype(np.float32)
+            return np.expand_dims(rgb, axis=0).astype(np.float32)
 
-        return np.expand_dims(normalized, axis=0).astype(np.float32)
+        return np.expand_dims(rgb, axis=0).astype(np.float32)
 
     def _determine_severity(self, condition: str, is_healthy: bool) -> str:
         """Categorizes disease severity for color coding."""
@@ -239,7 +233,12 @@ class DiseaseClassifierLite:
         else:
             logits = np.zeros(len(self.labels))
 
-        probs = softmax(logits)
+        # Auto-detect if model output is already softmax probabilities
+        raw_out = np.array(logits, dtype=np.float32)
+        if np.isclose(np.sum(raw_out), 1.0, atol=0.08) and np.all(raw_out >= -0.01):
+            probs = raw_out
+        else:
+            probs = softmax(raw_out)
         best_idx = int(np.argmax(probs))
         confidence = float(probs[best_idx])
 

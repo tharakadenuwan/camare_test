@@ -249,22 +249,15 @@ class LeafDetector:
                 if score < self.conf_threshold:
                     continue
 
-                if is_xyxy:
-                    # Model outputs [xmin, ymin, xmax, ymax]
-                    c0, c1, c2, c3 = boxes[i]
-                    xa = int(max(0.0, min(1.0, float(c0))) * orig_w)
-                    ya = int(max(0.0, min(1.0, float(c1))) * orig_h)
-                    xb = int(max(0.0, min(1.0, float(c2))) * orig_w)
-                    yb = int(max(0.0, min(1.0, float(c3))) * orig_h)
-                    x1, x2 = min(xa, xb), max(xa, xb)
-                    y1, y2 = min(ya, yb), max(ya, yb)
-                else:
-                    # Standard SSD outputs [ymin, xmin, ymax, xmax]
-                    ymin, xmin, ymax, xmax = boxes[i]
-                    x1 = int(max(0, xmin * orig_w))
-                    y1 = int(max(0, ymin * orig_h))
-                    x2 = int(min(orig_w - 1, xmax * orig_w))
-                    y2 = int(min(orig_h - 1, ymax * orig_h))
+                # Standard TFLite normalized bounding boxes are [ymin, xmin, ymax, xmax]
+                c0, c1, c2, c3 = boxes[i]
+                y1 = int(max(0.0, min(1.0, float(c0))) * orig_h)
+                x1 = int(max(0.0, min(1.0, float(c1))) * orig_w)
+                y2 = int(max(0.0, min(1.0, float(c2))) * orig_h)
+                x2 = int(max(0.0, min(1.0, float(c3))) * orig_w)
+
+                x1, x2 = min(x1, x2), max(x1, x2)
+                y1, y2 = min(y1, y2), max(y1, y2)
 
                 # Check box validity
                 if (x2 - x1) >= 15 and (y2 - y1) >= 15:

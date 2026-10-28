@@ -79,8 +79,7 @@ def main():
 
     for i in range(args.frames):
         if use_picam2:
-            rgb_arr = picam2.capture_array()
-            frame = cv2.cvtColor(rgb_arr, cv2.COLOR_RGB2BGR)
+            frame = picam2.capture_array()
         else:
             ret, frame = cap.read()
             if not ret:

@@ -113,12 +113,10 @@ class PiCameraStream:
         while self.running:
             try:
                 if self.is_picam and self.picam2:
-                    # capture_array returns RGB image from Picamera2
-                    rgb_frame = self.picam2.capture_array()
-                    # Convert to BGR for standard OpenCV processing
-                    bgr_frame = cv2.cvtColor(rgb_frame, cv2.COLOR_RGB2BGR)
+                    # Picamera2 configured with 'RGB888' is delivered in BGR byte order for OpenCV
+                    frame = self.picam2.capture_array()
                     with self.lock:
-                        self.frame = bgr_frame
+                        self.frame = frame
                         self.grabbed = True
                 elif self.cap and self.cap.isOpened():
                     ret, bgr_frame = self.cap.read()

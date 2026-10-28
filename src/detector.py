@@ -57,7 +57,7 @@ class LeafDetector:
         self,
         model_path: str,
         labels_path: Optional[str] = None,
-        conf_threshold: float = 0.5,
+        conf_threshold: float = 0.30,
         iou_threshold: float = 0.45,
         num_threads: int = 4,
         allow_mock: bool = False
@@ -251,11 +251,13 @@ class LeafDetector:
 
                 if is_xyxy:
                     # Model outputs [xmin, ymin, xmax, ymax]
-                    xmin, ymin, xmax, ymax = boxes[i]
-                    x1 = int(max(0, min(1.0, xmin)) * orig_w)
-                    y1 = int(max(0, min(1.0, ymin)) * orig_h)
-                    x2 = int(max(0, min(1.0, xmax)) * orig_w)
-                    y2 = int(max(0, min(1.0, ymax)) * orig_h)
+                    c0, c1, c2, c3 = boxes[i]
+                    xa = int(max(0.0, min(1.0, float(c0))) * orig_w)
+                    ya = int(max(0.0, min(1.0, float(c1))) * orig_h)
+                    xb = int(max(0.0, min(1.0, float(c2))) * orig_w)
+                    yb = int(max(0.0, min(1.0, float(c3))) * orig_h)
+                    x1, x2 = min(xa, xb), max(xa, xb)
+                    y1, y2 = min(ya, yb), max(ya, yb)
                 else:
                     # Standard SSD outputs [ymin, xmin, ymax, xmax]
                     ymin, xmin, ymax, xmax = boxes[i]

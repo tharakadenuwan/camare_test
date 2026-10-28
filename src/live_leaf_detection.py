@@ -59,10 +59,10 @@ def parse_args():
                         help="Path to leaf labels file")
     parser.add_argument("--disease-labels", type=str, default="labels/disease_labels.txt",
                         help="Path to 38-class disease labels file")
-    parser.add_argument("--conf-detector", type=float, default=0.45,
-                        help="Confidence threshold for leaf detector (default: 0.45)")
-    parser.add_argument("--conf-classifier", type=float, default=0.60,
-                        help="Confidence threshold for disease classifier (default: 0.60)")
+    parser.add_argument("--conf-detector", type=float, default=0.30,
+                        help="Confidence threshold for leaf detector (default: 0.30)")
+    parser.add_argument("--conf-classifier", type=float, default=0.40,
+                        help="Confidence threshold for disease classifier (default: 0.40)")
     parser.add_argument("--width", type=int, default=640,
                         help="Camera stream width (default: 640)")
     parser.add_argument("--height", type=int, default=480,

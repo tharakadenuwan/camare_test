@@ -1,0 +1,14 @@
+# PlantCare Training Requirements (For Google Colab or PC GPU Workstation)
+# Not to be installed on Raspberry Pi 5!
+
+torch>=2.1.0
+torchvision>=0.16.0
+onnx>=1.15.0
+onnxruntime>=1.17.0
+onnx2tf>=1.22.0
+tensorflow>=2.15.0
+albumentations>=1.4.0
+opencv-python>=4.8.0
+numpy>=1.24.0,<2.0.0
+pillow>=10.0.0
+tqdm>=4.66.0

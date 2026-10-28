@@ -1,0 +1,28 @@
+# PlantCare Raspberry Pi 5 Requirements
+# OS: Debian GNU/Linux 13 (Trixie) / Raspberry Pi OS 64-bit (ARM64)
+# Python: 3.13 / 3.12 / 3.11
+#
+# IMPORTANT SETUP NOTE:
+# Debian 13 enforces PEP 668 (externally managed environment).
+# OpenCV and Picamera2 must be installed via apt system packages, and the
+# Python virtual environment must be created with --system-site-packages:
+#
+#   sudo apt update && sudo apt install -y python3-opencv python3-picamera2 python3-venv
+#   python3 -m venv --system-site-packages .venv
+#   source .venv/bin/activate
+#   pip install -r requirements-pi.txt
+
+# Core Array Processing & Image I/O
+numpy>=1.26.0,<3.0.0
+pillow>=10.0.0
+
+# Edge AI Inference Engines (Non-YOLO, Lightweight, CPU-Optimized)
+# 1. Google LiteRT (Official successor to TensorFlow Lite runtime)
+ai-edge-litert>=1.0.0; platform_machine == 'aarch64' or platform_machine == 'x86_64'
+
+# 2. ONNX Runtime (High-efficiency CPU inference for ARM64)
+onnxruntime>=1.20.0; platform_machine == 'aarch64' or platform_machine == 'x86_64'
+
+# NOTE: If ai-edge-litert prebuilt wheels are pending for Python 3.13 on your specific
+# Debian trixie build, onnxruntime serves as a drop-in high-performance backend, or you can
+# install legacy tflite-runtime or run with Python 3.12.

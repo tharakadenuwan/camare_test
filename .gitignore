@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test outputs
+test_camera_output.jpg
+test_inference_output.jpg
+*.log
+
+# Large datasets and models
+*.zip
+*.tar.gz
+
+# Exclude original web app components from camera_test repo
+backend/
+plant-disease-frontend/
+Document/
+*.pdf
+docker-compose.yml
+implementation_plan.md
+integration_guide.md
+task.md

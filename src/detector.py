@@ -203,25 +203,14 @@ class LeafDetector:
             self.interpreter.set_tensor(self.input_index, input_data)
             self.interpreter.invoke()
 
-            # Typical MobileNet SSD TFLite outputs:
-            # 0: Boxes [1, num_detections, 4] (ymin, xmin, ymax, xmax)
-            # 1: Classes [1, num_detections]
-            # 2: Scores [1, num_detections]
-            # 3: Num detections [1]
-            out0 = self.interpreter.get_tensor(self.output_details[0]['index'])
-            out1 = self.interpreter.get_tensor(self.output_details[1]['index'])
-            out2 = self.interpreter.get_tensor(self.output_details[2]['index'])
-            out3 = self.interpreter.get_tensor(self.output_details[3]['index']) if len(self.output_details) > 3 else None
-
-            # Handle both standard SSD [1, N, 4] and custom single-box [1, 4] & [1, 1] heads
+            # Dynamic output head parsing for both custom [1, 4] & [1, 1] heads and standard SSD [1, N, 4]
             boxes = None
             classes = None
             scores = None
             is_xyxy = False
-
-            # Check for custom 2D output heads [1, 4] and [1, 1] (as in plantcare_pi5_models.zip)
             box_tensor = None
             conf_tensor = None
+
             for out in self.output_details:
                 tensor = self.interpreter.get_tensor(out['index'])
                 shape = tensor.shape
@@ -245,14 +234,15 @@ class LeafDetector:
                 num = 1
             else:
                 if boxes is None or scores is None:
-                    out0 = self.interpreter.get_tensor(self.output_details[0]['index'])
-                    out1 = self.interpreter.get_tensor(self.output_details[1]['index']) if len(self.output_details) > 1 else None
-                    out2 = self.interpreter.get_tensor(self.output_details[2]['index']) if len(self.output_details) > 2 else None
-                    boxes = out0[0] if len(out0.shape) == 3 else out0
-                    scores = out2[0] if out2 is not None and len(out2.shape) == 2 else np.ones(len(boxes))
-                    classes = out1[0] if out1 is not None and len(out1.shape) == 2 else np.zeros(len(boxes))
-                out3 = self.interpreter.get_tensor(self.output_details[3]['index']) if len(self.output_details) > 3 else None
-                num = int(out3[0]) if out3 is not None else len(scores)
+                    t0 = self.interpreter.get_tensor(self.output_details[0]['index'])
+                    boxes = t0[0] if len(t0.shape) == 3 else t0
+                    if len(self.output_details) > 1:
+                        t1 = self.interpreter.get_tensor(self.output_details[1]['index'])
+                        scores = t1[0] if len(t1.shape) == 2 else t1.flatten()
+                    else:
+                        scores = np.ones(len(boxes))
+                    classes = np.zeros(len(scores), dtype=int)
+                num = len(scores)
 
             for i in range(min(num, len(scores))):
                 score = float(scores[i])
